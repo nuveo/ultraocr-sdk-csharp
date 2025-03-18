@@ -4,6 +4,6 @@ using System.Text.Json.Serialization;
 
 public class TokenResponse
 {
-    [JsonPropertyName("Token")]
+    [JsonPropertyName("token")]
     public required string Token { get; set; }
 }

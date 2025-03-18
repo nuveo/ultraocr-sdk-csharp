@@ -117,8 +117,8 @@ class Client
             RequestUri = new Uri($"{AuthBaseUrl}/token"),
             Content = new StringContent(body),
         };
-        msg.Headers.Add(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.Add(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
 
         HttpResponseMessage response = await RequestClient.SendAsync(msg);
         response.EnsureSuccessStatusCode();
@@ -162,9 +162,9 @@ class Client
             RequestUri = new Uri(GetFullUrl(url, parameters)),
             Content = new StringContent(body),
         };
-        msg.Headers.Add(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.Add(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
-        msg.Headers.Add(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
 
         return await RequestClient.SendAsync(msg);
     }
@@ -178,9 +178,9 @@ class Client
             Method = HttpMethod.Get,
             RequestUri = new Uri(GetFullUrl(url, parameters)),
         };
-        msg.Headers.Add(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.Add(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
-        msg.Headers.Add(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        msg.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
 
         return await RequestClient.SendAsync(msg);
     }

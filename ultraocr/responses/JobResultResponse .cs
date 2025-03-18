@@ -35,7 +35,7 @@ public class JobResultResponse
     public object? Validation  { get; set; }
 
     [JsonPropertyName("result")]
-    public Result? Resesult  { get; set; }
+    public Result? Result  { get; set; }
 
     [JsonPropertyName("jobs")]
     public List<BatchStatusJobs>? Jobs  { get; set; }
