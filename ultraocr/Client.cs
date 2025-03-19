@@ -486,4 +486,22 @@ class Client
 
         return response;
     }
+
+    public async Task<JobResultResponse> CreateAndWaitJob(string service, string filePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        var response = await SendJob(service, filePath, metadata, parameters);
+        return await WaitForJobDone(response.Id, response.Id);
+    }
+
+    public async Task<JobResultResponse> CreateAndWaitJob(string service, string filePath, string facematchFilePath, string extraFilePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        var response = await SendJob(service, filePath, facematchFilePath, extraFilePath, metadata, parameters);
+        return await WaitForJobDone(response.Id, response.Id);
+    }
+
+    public async Task<BatchStatusResponse> CreateAndWaitBatch(string service, string filePath, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters, bool waitJobs)
+    {
+        var response = await SendBatch(service, filePath, metadata, parameters);
+        return await WaitForBatchDone(response.Id, waitJobs);
+    }
 }
