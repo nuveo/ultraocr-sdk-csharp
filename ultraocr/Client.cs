@@ -15,11 +15,12 @@ class Client
     private DateTime ExpiresAt { get; set; }
     private long Expires { get; set; }
     private long Timeout { get; set; }
-    private long Interval { get; set; }
+    private int Interval { get; set; }
     private bool AutoRefresh { get; set; }
     private HttpClient RequestClient { get; set; }
 
-    public Client() {
+    public Client()
+    {
         AuthBaseUrl = Constants.AUTH_BASE_URL;
         BaseUrl = Constants.BASE_URL;
         Timeout = Constants.API_TIMEOUT;
@@ -33,7 +34,8 @@ class Client
         RequestClient = new HttpClient();
     }
 
-    public Client(HttpClient httpClient) {
+    public Client(HttpClient httpClient)
+    {
         AuthBaseUrl = Constants.AUTH_BASE_URL;
         BaseUrl = Constants.BASE_URL;
         Timeout = Constants.API_TIMEOUT;
@@ -47,7 +49,8 @@ class Client
         RequestClient = httpClient;
     }
 
-    public Client(string clientID, string clientSecret, long expires) {
+    public Client(string clientID, string clientSecret, long expires)
+    {
         AuthBaseUrl = Constants.AUTH_BASE_URL;
         BaseUrl = Constants.BASE_URL;
         Timeout = Constants.API_TIMEOUT;
@@ -61,7 +64,8 @@ class Client
         RequestClient = new HttpClient();
     }
 
-    public Client(HttpClient httpClient, string clientID, string clientSecret, long expires) {
+    public Client(HttpClient httpClient, string clientID, string clientSecret, long expires)
+    {
         AuthBaseUrl = Constants.AUTH_BASE_URL;
         BaseUrl = Constants.BASE_URL;
         Timeout = Constants.API_TIMEOUT;
@@ -85,19 +89,23 @@ class Client
         ExpiresAt = DateTime.Now;
     }
 
-    public void SetBaseUrl(string baseUrl) {
+    public void SetBaseUrl(string baseUrl)
+    {
         BaseUrl = baseUrl;
     }
 
-    public void SetAuthBaseUrl(string authBaseUrl) {
+    public void SetAuthBaseUrl(string authBaseUrl)
+    {
         AuthBaseUrl = authBaseUrl;
     }
 
-    public void SetInterval(long interval) {
+    public void SetInterval(int interval)
+    {
         Interval = interval;
     }
 
-    public void SetHttpClient(HttpClient httpClient) {
+    public void SetHttpClient(HttpClient httpClient)
+    {
         RequestClient = httpClient;
     }
 
@@ -139,10 +147,11 @@ class Client
         }
     }
 
-    private static string GetFullUrl(string url, Dictionary<string, string> parameters) {
+    private static string GetFullUrl(string url, Dictionary<string, string> parameters)
+    {
         var parsed = new List<string>();
 
-        foreach(var item in parameters)
+        foreach (var item in parameters)
         {
             parsed.Add($"{item.Key}={item.Value}");
         }
@@ -185,19 +194,184 @@ class Client
         return await RequestClient.SendAsync(msg);
     }
 
-    public async Task<BatchStatusResponse?> GetBatchStatus(string batchKsuid) {
-        string url = $"{BaseUrl}/ocr/batch/status/{batchKsuid}";
-        HttpResponseMessage response = await Get(url, []);
+    public async Task<SignedUrlResponse?> GenerateSignedUrl(string service, string resource, object metadata, Dictionary<string, string> parameters)
+    {
+        string url = $"{BaseUrl}/ocr/{resource}/{service}";
+        HttpResponseMessage response = await Post(url, metadata, parameters);
 
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<BatchStatusResponse>(result);
+        var res = JsonSerializer.Deserialize<SignedUrlResponse>(result);
 
         return res;
     }
 
-    public async Task<JobResultResponse?> GetJobResult(string batchKsuid, string jobKsuid) {
+    public async Task UploadFile(string url, byte[] body)
+    {
+        HttpRequestMessage msg = new()
+        {
+            Method = HttpMethod.Put,
+            RequestUri = new Uri(url),
+            Content = new ByteArrayContent(body),
+        };
+
+        HttpResponseMessage response = await RequestClient.SendAsync(msg);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task UploadFileWithPath(string url, string filePath)
+    {
+        byte[] file = await File.ReadAllBytesAsync(filePath);
+        await UploadFile(url, file);
+    }
+
+    public async Task<CreatedResponse?> SendJobSingleStep(string service, string file, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        string url = $"{BaseUrl}/ocr/job/send/{service}";
+        Dictionary<string, object> body = new()
+        {
+            { "data", file },
+            { "metadata", metadata },
+        };
+        HttpResponseMessage response = await Post(url, body, parameters);
+
+        response.EnsureSuccessStatusCode();
+
+        string result = response.Content.ReadAsStringAsync().Result;
+        var res = JsonSerializer.Deserialize<CreatedResponse>(result);
+
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendJobSingleStep(string service, string file, string facematchFile, string extraFile, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        string url = $"{BaseUrl}/ocr/job/send/{service}";
+        Dictionary<string, object> body = new()
+        {
+            { "data", file },
+            { "metadata", metadata },
+        };
+
+        if (parameters.Contains(new(Constants.KEY_FACEMATCH, Constants.FLAG_TRUE)))
+        {
+            body.Add(Constants.KEY_FACEMATCH, facematchFile);
+        }
+        if (parameters.Contains(new(Constants.KEY_EXTRA, Constants.FLAG_TRUE)))
+        {
+            body.Add(Constants.KEY_EXTRA, extraFile);
+        }
+
+        HttpResponseMessage response = await Post(url, body, parameters);
+
+        response.EnsureSuccessStatusCode();
+
+        string result = response.Content.ReadAsStringAsync().Result;
+        var res = JsonSerializer.Deserialize<CreatedResponse>(result);
+
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendJob(string service, string filePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendJob(string service, string filePath, string facematchFilePath, string extraFilePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
+
+        if (parameters.Contains(new(Constants.KEY_FACEMATCH, Constants.FLAG_TRUE)))
+        {
+            await UploadFileWithPath(response.Urls[Constants.KEY_SELFIE], facematchFilePath);
+        }
+        if (parameters.Contains(new(Constants.KEY_EXTRA, Constants.FLAG_TRUE)))
+        {
+            await UploadFileWithPath(response.Urls[Constants.KEY_EXTRA_URL], extraFilePath);
+        }
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendJobBase64(string service, byte[] file, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        parameters.Add(Constants.BASE64_ATTRIBUTE, Constants.FLAG_TRUE);
+        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendJobBase64(string service, byte[] file, byte[] facematchFile, byte[] extraFile, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    {
+        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
+
+        if (parameters.Contains(new(Constants.KEY_FACEMATCH, Constants.FLAG_TRUE)))
+        {
+            await UploadFile(response.Urls[Constants.KEY_SELFIE], facematchFile);
+        }
+        if (parameters.Contains(new(Constants.KEY_EXTRA, Constants.FLAG_TRUE)))
+        {
+            await UploadFile(response.Urls[Constants.KEY_EXTRA_URL], extraFile);
+        }
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendBatch(string service, string filePath, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters)
+    {
+        SignedUrlResponse response = await GenerateSignedUrl(service, "batch", metadata, parameters);
+        await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<CreatedResponse?> SendBatchBase64(string service, byte[] file, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters)
+    {
+        parameters.Add(Constants.BASE64_ATTRIBUTE, Constants.FLAG_TRUE);
+        SignedUrlResponse response = await GenerateSignedUrl(service, "batch", metadata, parameters);
+        await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
+
+        CreatedResponse res = new()
+        {
+            StatusUrl = response.StatusUrl,
+            Id = response.Id,
+        };
+        return res;
+    }
+
+    public async Task<JobResultResponse?> GetJobResult(string batchKsuid, string jobKsuid)
+    {
         string url = $"{BaseUrl}/ocr/job/result/{batchKsuid}/{jobKsuid}";
         HttpResponseMessage response = await Get(url, []);
 
@@ -209,27 +383,107 @@ class Client
         return res;
     }
 
-    public async Task<JobResultResponse?> GetJobResult(string jobKsuid) {
-        string url = $"{BaseUrl}/ocr/job/result/{jobKsuid}/{jobKsuid}";
+    public async Task<BatchStatusResponse?> GetBatchStatus(string batchKsuid)
+    {
+        string url = $"{BaseUrl}/ocr/batch/status/{batchKsuid}";
         HttpResponseMessage response = await Get(url, []);
 
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<JobResultResponse>(result);
+        var res = JsonSerializer.Deserialize<BatchStatusResponse>(result);
 
         return res;
     }
 
-    public async Task<SignedUrlResponse?> GenerateSignedUrl(string service, string resource, object metadata, Dictionary<string, string> parameters) {
-        string url = $"{BaseUrl}/ocr/{resource}/{service}";
-        HttpResponseMessage response = await Post(url, metadata, parameters);
+    public async Task<List<JobResultResponse>> GetJobs(string start, string end)
+    {
+        string url = $"{BaseUrl}/ocr/job/results";
+        Dictionary<string, string> parameters = new()
+        {
+            { "startDate", start },
+            { "endDate", end },
+        };
 
-        response.EnsureSuccessStatusCode();
+        var jobs = new List<JobResultResponse>();
+        var hasNextPage = true;
 
-        string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<SignedUrlResponse>(result);
+        while (hasNextPage)
+        {
+            HttpResponseMessage response = await Get(url, parameters);
 
-        return res;
+            response.EnsureSuccessStatusCode();
+
+            string result = response.Content.ReadAsStringAsync().Result;
+            var res = JsonSerializer.Deserialize<GetJobsResponse>(result);
+
+            var nextPageToken = res.NextPageToken;
+
+            if (nextPageToken == null || nextPageToken == "")
+            {
+                hasNextPage = false;
+                continue;
+            }
+
+            parameters.Add("nextPageToken", nextPageToken);
+        }
+
+        return jobs;
+    }
+
+    public async Task<JobResultResponse> WaitForJobDone(string batchKsuid, string jobKsuid)
+    {
+        DateTime end = DateTime.Now.AddSeconds(Timeout);
+        JobResultResponse response;
+
+        while (true)
+        {
+            response = await GetJobResult(batchKsuid, jobKsuid);
+            string status = response.Status;
+            if (status == Constants.STATUS_DONE || status == Constants.STATUS_ERROR)
+            {
+                return response;
+            }
+
+            if (DateTime.Now > end)
+            {
+                throw new Exception("timeout");
+            }
+
+            Thread.Sleep(Interval * 1000);
+        }
+    }
+
+    public async Task<BatchStatusResponse> WaitForBatchDone(string batchKsuid, bool waitJobs)
+    {
+        DateTime end = DateTime.Now.AddSeconds(Timeout);
+        BatchStatusResponse response;
+
+        while (true)
+        {
+            response = await GetBatchStatus(batchKsuid);
+            string status = response.Status;
+            if (status == Constants.STATUS_DONE || status == Constants.STATUS_ERROR)
+            {
+                break;
+            }
+
+            if (DateTime.Now > end)
+            {
+                throw new Exception("timeout");
+            }
+
+            Thread.Sleep(Interval * 1000);
+        }
+
+        if (waitJobs)
+        {
+            foreach (var job in response.Jobs)
+            {
+                WaitForJobDone(batchKsuid, job.JobKsuid);
+            }
+        }
+
+        return response;
     }
 }

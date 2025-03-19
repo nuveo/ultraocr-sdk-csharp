@@ -8,17 +8,17 @@ public class BatchStatusResponse
     public required string BatchKsuid { get; set; }
 
     [JsonPropertyName("created_at")]
-    public required string CreatedAt  { get; set; }
+    public required string CreatedAt { get; set; }
 
     [JsonPropertyName("service")]
-    public required string Service  { get; set; }
+    public required string Service { get; set; }
 
     [JsonPropertyName("status")]
-    public required string Status  { get; set; }
+    public required string Status { get; set; }
 
     [JsonPropertyName("error")]
-    public string? Error  { get; set; }
+    public string? Error { get; set; }
 
     [JsonPropertyName("jobs")]
-    public List<BatchStatusJobs>? Jobs  { get; set; }
+    public List<BatchStatusJobs>? Jobs { get; set; }
 }
