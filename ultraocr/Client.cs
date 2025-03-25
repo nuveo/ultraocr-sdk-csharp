@@ -1,10 +1,12 @@
-﻿// <copyright file="Client.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
+﻿// <copyright file="Client.cs" company="Nuveo">
+// Copyright (c) Nuveo. All rights reserved.
 // </copyright>
 
 namespace Ultraocr;
 
 using System.Text.Json;
+using System.Threading.Tasks;
+using Ultraocr.Enums;
 using Ultraocr.Exceptions;
 using Ultraocr.Responses;
 
@@ -182,6 +184,7 @@ public class Client
     /// <param name="clientSecret">The Client Secret generated on Web Interface.</param>
     /// <param name="expires">The token expires time (in minutes).</param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task"/> The url info.</returns>
     public async Task Authenticate(string clientID, string clientSecret, long expires)
     {
@@ -193,24 +196,23 @@ public class Client
         };
         string body = JsonSerializer.Serialize(data);
 
-        HttpRequestMessage msg = new()
+        HttpRequestMessage message = new()
         {
             Method = HttpMethod.Post,
             RequestUri = new Uri($"{AuthBaseUrl}/token"),
             Content = new StringContent(body),
         };
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
 
-        HttpResponseMessage response = await RequestClient.SendAsync(msg);
-        response.EnsureSuccessStatusCode();
+        HttpResponseMessage res = await RequestClient.SendAsync(message);
+        res.EnsureSuccessStatusCode();
 
-        string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<TokenResponse>(result);
-        if (res is not null)
-        {
-            Token = res.Token;
-        }
+        string result = res.Content.ReadAsStringAsync().Result;
+        TokenResponse response = JsonSerializer.Deserialize<TokenResponse>(result)
+            ?? throw new InvalidResponseException();
+
+        Token = response.Token;
     }
 
     /// <summary>
@@ -221,18 +223,21 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{SignedUrlResponse}"/> When authentication is done info.</returns>
-    public async Task<SignedUrlResponse?> GenerateSignedUrl(string service, string resource, object metadata, Dictionary<string, string> parameters)
+    public async Task<SignedUrlResponse> GenerateSignedUrl(
+        string service,
+        Resource resource,
+        object metadata,
+        Dictionary<string, string> parameters)
     {
-        string url = $"{BaseUrl}/ocr/{resource}/{service}";
-        HttpResponseMessage response = await Post(url, metadata, parameters);
+        string url = $"{BaseUrl}/ocr/{resource.ToString().ToLower()}/{service}";
 
+        HttpResponseMessage response = await Post(url, metadata, parameters);
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<SignedUrlResponse>(result);
-
-        return res;
+        return JsonSerializer.Deserialize<SignedUrlResponse>(result) ?? throw new InvalidResponseException();
     }
 
     /// <summary>
@@ -244,14 +249,14 @@ public class Client
     /// <returns>A <see cref="Task"/> When upload is done.</returns>
     public async Task UploadFile(string url, byte[] body)
     {
-        HttpRequestMessage msg = new()
+        HttpRequestMessage message = new()
         {
             Method = HttpMethod.Put,
             RequestUri = new Uri(url),
             Content = new ByteArrayContent(body),
         };
 
-        HttpResponseMessage response = await RequestClient.SendAsync(msg);
+        HttpResponseMessage response = await RequestClient.SendAsync(message);
         response.EnsureSuccessStatusCode();
     }
 
@@ -276,8 +281,13 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJobSingleStep(string service, string file, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJobSingleStep(
+        string service,
+        string file,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
         string url = $"{BaseUrl}/ocr/job/send/{service}";
         Dictionary<string, object> body = new()
@@ -285,14 +295,12 @@ public class Client
             { "data", file },
             { "metadata", metadata },
         };
-        HttpResponseMessage response = await Post(url, body, parameters);
 
+        HttpResponseMessage response = await Post(url, body, parameters);
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<CreatedResponse>(result);
-
-        return res;
+        return JsonSerializer.Deserialize<CreatedResponse>(result) ?? throw new InvalidResponseException();
     }
 
     /// <summary>
@@ -305,8 +313,15 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJobSingleStep(string service, string file, string facematchFile, string extraFile, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJobSingleStep(
+        string service,
+        string file,
+        string facematchFile,
+        string extraFile,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
         string url = $"{BaseUrl}/ocr/job/send/{service}";
         Dictionary<string, object> body = new()
@@ -326,13 +341,10 @@ public class Client
         }
 
         HttpResponseMessage response = await Post(url, body, parameters);
-
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<CreatedResponse>(result);
-
-        return res;
+        return JsonSerializer.Deserialize<CreatedResponse>(result) ?? throw new InvalidResponseException();
     }
 
     /// <summary>
@@ -343,18 +355,22 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJob(string service, string filePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJob(
+        string service,
+        string filePath,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
-        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Job, metadata, parameters);
         await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -367,27 +383,34 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJob(string service, string filePath, string facematchFilePath, string extraFilePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJob(
+        string service,
+        string filePath,
+        string facematchFilePath,
+        string extraFilePath,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
-        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Job, metadata, parameters);
         await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
 
         if (parameters.Contains(new(Constants.KEY_FACEMATCH, Constants.FLAG_TRUE)))
         {
             await UploadFileWithPath(response.Urls[Constants.KEY_SELFIE], facematchFilePath);
         }
+
         if (parameters.Contains(new(Constants.KEY_EXTRA, Constants.FLAG_TRUE)))
         {
             await UploadFileWithPath(response.Urls[Constants.KEY_EXTRA_URL], extraFilePath);
         }
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -398,19 +421,24 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJobBase64(string service, byte[] file, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJobBase64(
+        string service,
+        byte[] file,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
         parameters.Add(Constants.BASE64_ATTRIBUTE, Constants.FLAG_TRUE);
-        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Job, metadata, parameters);
         await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -423,27 +451,36 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The job info with id.</returns>
-    public async Task<CreatedResponse?> SendJobBase64(string service, byte[] file, byte[] facematchFile, byte[] extraFile, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendJobBase64(
+        string service,
+        byte[] file,
+        byte[] facematchFile,
+        byte[] extraFile,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
-        SignedUrlResponse response = await GenerateSignedUrl(service, "job", metadata, parameters);
+        parameters.Add(Constants.BASE64_ATTRIBUTE, Constants.FLAG_TRUE);
+
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Job, metadata, parameters);
         await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
 
         if (parameters.Contains(new(Constants.KEY_FACEMATCH, Constants.FLAG_TRUE)))
         {
             await UploadFile(response.Urls[Constants.KEY_SELFIE], facematchFile);
         }
+
         if (parameters.Contains(new(Constants.KEY_EXTRA, Constants.FLAG_TRUE)))
         {
             await UploadFile(response.Urls[Constants.KEY_EXTRA_URL], extraFile);
         }
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -454,18 +491,22 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The batch info with id.</returns>
-    public async Task<CreatedResponse?> SendBatch(string service, string filePath, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendBatch(
+        string service,
+        string filePath,
+        Dictionary<string, object>[] metadata,
+        Dictionary<string, string> parameters)
     {
-        SignedUrlResponse response = await GenerateSignedUrl(service, "batch", metadata, parameters);
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Batch, metadata, parameters);
         await UploadFileWithPath(response.Urls[Constants.KEY_DOCUMENT], filePath);
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -476,19 +517,24 @@ public class Client
     /// <param name="metadata">The metadata based on UltraOCR Docs format, optional in most cases.</param>
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{CreatedResponse}"/> The batch info with id.</returns>
-    public async Task<CreatedResponse?> SendBatchBase64(string service, byte[] file, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters)
+    public async Task<CreatedResponse> SendBatchBase64(
+        string service,
+        byte[] file,
+        Dictionary<string, object>[] metadata,
+        Dictionary<string, string> parameters)
     {
         parameters.Add(Constants.BASE64_ATTRIBUTE, Constants.FLAG_TRUE);
-        SignedUrlResponse response = await GenerateSignedUrl(service, "batch", metadata, parameters);
+
+        SignedUrlResponse response = await GenerateSignedUrl(service, Resource.Batch, metadata, parameters);
         await UploadFile(response.Urls[Constants.KEY_DOCUMENT], file);
 
-        CreatedResponse res = new()
+        return new()
         {
             StatusUrl = response.StatusUrl,
             Id = response.Id,
         };
-        return res;
     }
 
     /// <summary>
@@ -497,37 +543,35 @@ public class Client
     /// <param name="batchKsuid">the id of the batch, given on batch creation(repeat the job id if batch wasn't created).</param>
     /// <param name="jobKsuid">the id of the job, given on job creation or on batch status.</param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{JobResultResponse}"/> The job response.</returns>
-    public async Task<JobResultResponse?> GetJobResult(string batchKsuid, string jobKsuid)
+    public async Task<JobResultResponse> GetJobResult(string batchKsuid, string jobKsuid)
     {
         string url = $"{BaseUrl}/ocr/job/result/{batchKsuid}/{jobKsuid}";
-        HttpResponseMessage response = await Get(url, []);
 
+        HttpResponseMessage response = await Get(url, []);
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<JobResultResponse>(result);
-
-        return res;
+        return JsonSerializer.Deserialize<JobResultResponse>(result) ?? throw new InvalidResponseException();
     }
 
     /// <summary>
     /// Get document batch status.
     /// </summary>
     /// <param name="batchKsuid">The id of the batch, given on batch creation.</param>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
     /// <returns>A <see cref="Task{BatchStatusResponse}"/> The batch with status.</returns>
-    public async Task<BatchStatusResponse?> GetBatchStatus(string batchKsuid)
+    public async Task<BatchStatusResponse> GetBatchStatus(string batchKsuid)
     {
         string url = $"{BaseUrl}/ocr/batch/status/{batchKsuid}";
-        HttpResponseMessage response = await Get(url, []);
 
+        HttpResponseMessage response = await Get(url, []);
         response.EnsureSuccessStatusCode();
 
         string result = response.Content.ReadAsStringAsync().Result;
-        var res = JsonSerializer.Deserialize<BatchStatusResponse>(result);
-
-        return res;
+        return JsonSerializer.Deserialize<BatchStatusResponse>(result) ?? throw new InvalidResponseException();
     }
 
     /// <summary>
@@ -536,6 +580,7 @@ public class Client
     /// <param name="start">The start date (in the format YYYY-MM-DD).</param>
     /// <param name="end">The end date (in the format YYYY-MM-DD).</param>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{List{JobResultResponse}}"/> The list of jobs.</returns>
     public async Task<List<JobResultResponse>> GetJobs(string start, string end)
     {
@@ -546,27 +591,25 @@ public class Client
             { "endDate", end },
         };
 
-        var jobs = new List<JobResultResponse>();
-        var hasNextPage = true;
+        List<JobResultResponse> jobs = [];
+        bool hasNextPage = true;
 
         while (hasNextPage)
         {
-            HttpResponseMessage response = await Get(url, parameters);
+            HttpResponseMessage res = await Get(url, parameters);
+            res.EnsureSuccessStatusCode();
 
-            response.EnsureSuccessStatusCode();
+            string result = res.Content.ReadAsStringAsync().Result;
+            GetJobsResponse response = JsonSerializer.Deserialize<GetJobsResponse>(result)
+                ?? throw new InvalidResponseException();
 
-            string result = response.Content.ReadAsStringAsync().Result;
-            var res = JsonSerializer.Deserialize<GetJobsResponse>(result);
+            string nextPageToken = response.NextPageToken ?? string.Empty;
+            parameters.Add("nextPageToken", nextPageToken);
 
-            var nextPageToken = res.NextPageToken;
-
-            if (nextPageToken == null || nextPageToken == string.Empty)
+            if (nextPageToken == string.Empty)
             {
                 hasNextPage = false;
-                continue;
             }
-
-            parameters.Add("nextPageToken", nextPageToken);
         }
 
         return jobs;
@@ -579,16 +622,16 @@ public class Client
     /// <param name="jobKsuid">The id of the job, given on job creation or on batch status.</param>
     /// <exception cref="JobTimeoutException">Thrown if timeout is reached.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{JobResultResponse}"/> The job with result.</returns>
     public async Task<JobResultResponse> WaitForJobDone(string batchKsuid, string jobKsuid)
     {
         DateTime end = DateTime.Now.AddSeconds(Timeout);
-        JobResultResponse response;
-
         while (true)
         {
-            response = await GetJobResult(batchKsuid, jobKsuid);
+            JobResultResponse response = await GetJobResult(batchKsuid, jobKsuid);
             string status = response.Status;
+
             if (status == Constants.STATUS_DONE || status == Constants.STATUS_ERROR)
             {
                 return response;
@@ -610,6 +653,7 @@ public class Client
     /// <param name="waitJobs">Indicate if must wait the jobs to be processed.</param>
     /// <exception cref="JobTimeoutException">Thrown if timeout is reached.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{BatchStatusResponse}"/> The batch with status.</returns>
     public async Task<BatchStatusResponse> WaitForBatchDone(string batchKsuid, bool waitJobs)
     {
@@ -620,6 +664,7 @@ public class Client
         {
             response = await GetBatchStatus(batchKsuid);
             string status = response.Status;
+
             if (status == Constants.STATUS_DONE || status == Constants.STATUS_ERROR)
             {
                 break;
@@ -635,7 +680,7 @@ public class Client
 
         if (waitJobs)
         {
-            foreach (var job in response.Jobs)
+            foreach (BatchStatusJobs job in response.Jobs ?? [])
             {
                 await WaitForJobDone(batchKsuid, job.JobKsuid);
             }
@@ -653,10 +698,15 @@ public class Client
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="JobTimeoutException">Thrown if timeout is reached.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{JobResultResponse}"/> The job with result.</returns>
-    public async Task<JobResultResponse> CreateAndWaitJob(string service, string filePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<JobResultResponse> CreateAndWaitJob(
+        string service,
+        string filePath,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
-        var response = await SendJob(service, filePath, metadata, parameters);
+        CreatedResponse response = await SendJob(service, filePath, metadata, parameters);
         return await WaitForJobDone(response.Id, response.Id);
     }
 
@@ -671,10 +721,23 @@ public class Client
     /// <param name="parameters">The query parameters based on UltraOCR Docs, optional in most cases. </param>
     /// <exception cref="JobTimeoutException">Thrown if timeout is reached.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{JobResultResponse}"/> The job with result.</returns>
-    public async Task<JobResultResponse> CreateAndWaitJob(string service, string filePath, string facematchFilePath, string extraFilePath, Dictionary<string, object> metadata, Dictionary<string, string> parameters)
+    public async Task<JobResultResponse> CreateAndWaitJob(
+        string service,
+        string filePath,
+        string facematchFilePath,
+        string extraFilePath,
+        Dictionary<string, object> metadata,
+        Dictionary<string, string> parameters)
     {
-        var response = await SendJob(service, filePath, facematchFilePath, extraFilePath, metadata, parameters);
+        CreatedResponse response = await SendJob(
+            service,
+            filePath,
+            facematchFilePath,
+            extraFilePath,
+            metadata,
+            parameters);
         return await WaitForJobDone(response.Id, response.Id);
     }
 
@@ -688,17 +751,22 @@ public class Client
     /// <param name="waitJobs">Indicate if must wait the jobs to be processed.</param>
     /// <exception cref="JobTimeoutException">Thrown if timeout is reached.</exception>
     /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
     /// <returns>A <see cref="Task{BatchStatusResponse}"/> The batch with status.</returns>
-    public async Task<BatchStatusResponse> CreateAndWaitBatch(string service, string filePath, Dictionary<string, object>[] metadata, Dictionary<string, string> parameters, bool waitJobs)
+    public async Task<BatchStatusResponse> CreateAndWaitBatch(
+        string service,
+        string filePath,
+        Dictionary<string, object>[] metadata,
+        Dictionary<string, string> parameters,
+        bool waitJobs)
     {
-        var response = await SendBatch(service, filePath, metadata, parameters);
+        CreatedResponse response = await SendBatch(service, filePath, metadata, parameters);
         return await WaitForBatchDone(response.Id, waitJobs);
     }
 
     private static string GetFullUrl(string url, Dictionary<string, string> parameters)
     {
-        var parsed = new List<string>();
-
+        List<string> parsed = [];
         foreach (var item in parameters)
         {
             parsed.Add($"{item.Key}={item.Value}");
@@ -707,46 +775,45 @@ public class Client
         return $"{url}?{string.Join("&", parsed)}";
     }
 
-    private void AutoAuthenticate()
+    private async Task AutoAuthenticate()
     {
         if (AutoRefresh && (ExpiresAt >= DateTime.Now))
         {
-            _ = Authenticate(ClientID, ClientSecret, Expires);
+            await Authenticate(ClientID, ClientSecret, Expires);
         }
     }
 
     private async Task<HttpResponseMessage> Post(string url, object data, Dictionary<string, string> parameters)
     {
-        AutoAuthenticate();
-
+        await AutoAuthenticate();
         string body = JsonSerializer.Serialize(data);
 
-        HttpRequestMessage msg = new()
+        HttpRequestMessage message = new()
         {
             Method = HttpMethod.Post,
             RequestUri = new Uri(GetFullUrl(url, parameters)),
             Content = new StringContent(body),
         };
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
 
-        return await RequestClient.SendAsync(msg);
+        return await RequestClient.SendAsync(message);
     }
 
     private async Task<HttpResponseMessage> Get(string url, Dictionary<string, string> parameters)
     {
-        AutoAuthenticate();
+        await AutoAuthenticate();
 
-        HttpRequestMessage msg = new()
+        HttpRequestMessage message = new()
         {
             Method = HttpMethod.Get,
             RequestUri = new Uri(GetFullUrl(url, parameters)),
         };
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
-        msg.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_ACCEPT, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_CONTENT_TYPE, Constants.APPLICATION_JSON);
+        message.Headers.TryAddWithoutValidation(Constants.HEADER_AUTHORIZATION, Constants.BEARER_PREFIX + Token);
 
-        return await RequestClient.SendAsync(msg);
+        return await RequestClient.SendAsync(message);
     }
 }

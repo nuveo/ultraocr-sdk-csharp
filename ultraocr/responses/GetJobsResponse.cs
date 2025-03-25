@@ -1,5 +1,5 @@
-// <copyright file="GetJobsResponse.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
+// <copyright file="GetJobsResponse.cs" company="Nuveo">
+// Copyright (c) Nuveo. All rights reserved.
 // </copyright>
 
 namespace Ultraocr.Responses;

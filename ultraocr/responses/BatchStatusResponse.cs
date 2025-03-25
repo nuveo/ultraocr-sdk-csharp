@@ -1,5 +1,5 @@
-// <copyright file="BatchStatusResponse.cs" company="PlaceholderCompany">
-// Copyright (c) PlaceholderCompany. All rights reserved.
+// <copyright file="BatchStatusResponse.cs" company="Nuveo">
+// Copyright (c) Nuveo. All rights reserved.
 // </copyright>
 
 namespace Ultraocr.Responses;

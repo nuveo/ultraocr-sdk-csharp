@@ -8,3 +8,6 @@ dotnet_diagnostic.SA1310.severity = silent
 
 # SA1201: Elements should appear in the correct order
 dotnet_diagnostic.SA1201.severity = silent
+
+# SA1636: File header copyright text should match
+dotnet_diagnostic.SA1636.severity = silent
