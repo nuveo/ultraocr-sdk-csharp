@@ -12,6 +12,5 @@ jobs:
           dotnet-version: 9.x
       - name: Run unit tests
         run: |
-          dotnet tool restore
           dotnet build
           dotnet test tests/tests.csproj
