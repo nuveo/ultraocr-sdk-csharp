@@ -14,4 +14,4 @@ jobs:
         run: |
           dotnet tool restore
           dotnet build
-          dotnet test
+          dotnet test tests/tests.csproj
