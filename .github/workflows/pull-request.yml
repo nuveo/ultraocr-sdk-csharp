@@ -12,5 +12,6 @@ jobs:
           dotnet-version: 9.x
       - name: Run unit tests
         run: |
-          dotnet build --no-restore
-          dotnet test --no-build
+          dotnet tool restore
+          dotnet build
+          dotnet test
