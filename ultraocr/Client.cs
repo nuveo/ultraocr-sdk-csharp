@@ -603,8 +603,9 @@ public class Client
             GetJobsResponse response = JsonSerializer.Deserialize<GetJobsResponse>(result)
                 ?? throw new InvalidResponseException();
 
+            jobs.AddRange(response.Jobs);
             string nextPageToken = response.NextPageToken ?? string.Empty;
-            parameters.Add("nextPageToken", nextPageToken);
+            parameters.TryAdd("nextPageToken", nextPageToken);
 
             if (nextPageToken == string.Empty)
             {
@@ -777,7 +778,7 @@ public class Client
 
     private async Task AutoAuthenticate()
     {
-        if (AutoRefresh && (ExpiresAt >= DateTime.Now))
+        if (AutoRefresh && (ExpiresAt <= DateTime.Now))
         {
             await Authenticate(ClientID, ClientSecret, Expires);
         }
