@@ -1,0 +1,24 @@
+name: Publish
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup C#
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.x
+      - name: Publish package
+        env:
+          NUGET_CLI_EXE: /usr/local/bin/nuget
+        run: |
+          VERSION=$(echo ${GITHUB_REF} | sed 's/refs\/tags\///')
+          dotnet restore
+          dotnet build --configuration Release
+          dotnet pack --configuration Release --no-build --output ./nupkgs /p:Version=$VERSION
+          dotnet nuget push ./nupkgs/*.nupkg --source "github" --api-key ${{ secrets.GITHUB_TOKEN }}
