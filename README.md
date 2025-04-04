@@ -8,7 +8,11 @@ For more details about the system, types of documents, routes and params, access
 
 ## Instalation
 
-First of all, you must install this package.
+First of all, you must install this package with nuget:
+
+```
+dotnet add package Ultraocr --version 1.0.0
+```
 
 Then you must import the UltraOCR SDK in your code with:
 
