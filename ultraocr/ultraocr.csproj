@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <Authors>Nuveo</Authors>
     <Company>GitHub</Company>
-    <PackageId>Ultraocr</PackageId>
+    <PackageId>Ultraocr.SDK</PackageId>
     <RepositoryType>git</RepositoryType>
     <PackageDescription>This package is an UltraOCR SDK for C#!</PackageDescription>
     <RepositoryUrl>https://github.com/nuveo/ultraocr-sdk-csharp</RepositoryUrl>

@@ -18,8 +18,7 @@ jobs:
           NUGET_CLI_EXE: /usr/local/bin/nuget
         run: |
           VERSION=$(echo ${GITHUB_REF} | sed 's/refs\/tags\///')
-          dotnet nuget add source --username nuveo --password ${{ secrets.API_KEY }} --store-password-in-clear-text --name github "https://api.nuget.org/v3/index.json"
           dotnet restore
           dotnet build --configuration Release
           dotnet pack --configuration Release --no-build --output ./nupkgs /p:Version=$VERSION
-          dotnet nuget push ./nupkgs/*.nupkg --source "github" --api-key ${{ secrets.API_KEY }}
+          dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ secrets.API_KEY }}
