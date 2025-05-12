@@ -765,6 +765,76 @@ public class Client
         return await WaitForBatchDone(response.Id, waitJobs);
     }
 
+    /// <summary>
+    /// Get job info.
+    /// </summary>
+    /// <param name="jobKsuid">the id of the job, given on job creation.</param>
+    /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
+    /// <returns>A <see cref="Task{JobInfoResponse}"/> The job info response.</returns>
+    public async Task<JobInfoResponse> GetJobInfo(string jobKsuid)
+    {
+        string url = $"{BaseUrl}/ocr/job/info/{jobKsuid}";
+
+        HttpResponseMessage response = await Get(url, []);
+        response.EnsureSuccessStatusCode();
+
+        string result = response.Content.ReadAsStringAsync().Result;
+        return JsonSerializer.Deserialize<JobInfoResponse>(result) ?? throw new InvalidResponseException();
+    }
+
+    /// <summary>
+    /// Get batch info.
+    /// </summary>
+    /// <param name="batchKsuid">the id of the batch, given on batch creation.</param>
+    /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
+    /// <returns>A <see cref="Task{BatchInfoResponse}"/> The batch info response.</returns>
+    public async Task<BatchInfoResponse> GetBatchInfo(string batchKsuid)
+    {
+        string url = $"{BaseUrl}/ocr/batch/info/{batchKsuid}";
+
+        HttpResponseMessage response = await Get(url, []);
+        response.EnsureSuccessStatusCode();
+
+        string result = response.Content.ReadAsStringAsync().Result;
+        return JsonSerializer.Deserialize<BatchInfoResponse>(result) ?? throw new InvalidResponseException();
+    }
+
+    /// <summary>
+    /// Get batch jobs results as List.
+    /// </summary>
+    /// <param name="batchKsuid">the id of the batch, given on batch creation.</param>
+    /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
+    /// <returns>A <see cref="Task{List{BatchResultJob}}"/> The batch jobs results.</returns>
+    public async Task<List<BatchResultJob>> GetBatchResult(string batchKsuid)
+    {
+        Dictionary<string, string> parameters = new()
+        {
+            { Constants.RETURN_ATTRIBUTE, Constants.RETURN_REQUEST },
+        };
+        string result = await GetBatchResult(batchKsuid, parameters);
+
+        return JsonSerializer.Deserialize<List<BatchResultJob>>(result) ?? throw new InvalidResponseException();
+    }
+
+    /// <summary>
+    /// Get batch jobs results in a file.
+    /// </summary>
+    /// <param name="batchKsuid">the id of the batch, given on batch creation.</param>
+    /// <param name="parameters">The query parameters based on UltraOCR Docs. </param>
+    /// <exception cref="HttpRequestException">Thrown if wrong status code.</exception>
+    /// <exception cref="InvalidResponseException">Thrown if response is invalid.</exception>
+    /// <returns>A <see cref="Task{BatchResultStorageResponse}"/> The batch jobs results in a file.</returns>
+    public async Task<BatchResultStorageResponse> GetBatchResultStorage(string batchKsuid, Dictionary<string, string> parameters)
+    {
+        parameters.Add(Constants.RETURN_ATTRIBUTE, Constants.RETURN_STORAGE);
+        string result = await GetBatchResult(batchKsuid, parameters);
+
+        return JsonSerializer.Deserialize<BatchResultStorageResponse>(result) ?? throw new InvalidResponseException();
+    }
+
     private static string GetFullUrl(string url, Dictionary<string, string> parameters)
     {
         List<string> parsed = [];
@@ -774,6 +844,17 @@ public class Client
         }
 
         return $"{url}?{string.Join("&", parsed)}";
+    }
+
+    private async Task<string> GetBatchResult(string batchKsuid, Dictionary<string, string> parameters)
+    {
+        string url = $"{BaseUrl}/ocr/batch/result/{batchKsuid}";
+
+        HttpResponseMessage response = await Get(url, parameters);
+        response.EnsureSuccessStatusCode();
+
+        string result = response.Content.ReadAsStringAsync().Result;
+        return result;
     }
 
     private async Task AutoAuthenticate()

@@ -1,4 +1,4 @@
-// <copyright file="JobResultResponse.cs" company="Nuveo">
+// <copyright file="JobInfoResponse.cs" company="Nuveo">
 // Copyright (c) Nuveo. All rights reserved.
 // </copyright>
 
@@ -7,21 +7,45 @@ namespace Ultraocr.Responses;
 using System.Text.Json.Serialization;
 
 /// <summary>
-/// The Job result response.
+/// The Job info response.
 /// </summary>
-public class JobResultResponse
+public class JobInfoResponse
 {
     /// <summary>
-    /// Gets or sets the Job ksuid.
+    /// Gets or sets the Batch id.
     /// </summary>
-    [JsonPropertyName("job_ksuid")]
-    public required string JobKsuid { get; set; }
+    [JsonPropertyName("job_id")]
+    public required string JobId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Client id.
+    /// </summary>
+    [JsonPropertyName("client_id")]
+    public required string ClientId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Company id.
+    /// </summary>
+    [JsonPropertyName("company_id")]
+    public required string CompanyId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Validation id.
+    /// </summary>
+    [JsonPropertyName("validation_id")]
+    public required string? ValidationId { get; set; }
 
     /// <summary>
     /// Gets or sets the Created At.
     /// </summary>
     [JsonPropertyName("created_at")]
     public required string CreatedAt { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Finished At.
+    /// </summary>
+    [JsonPropertyName("finished_at")]
+    public string? FinishedAt { get; set; }
 
     /// <summary>
     /// Gets or sets the Service.
@@ -42,10 +66,10 @@ public class JobResultResponse
     public string? Error { get; set; }
 
     /// <summary>
-    /// Gets or sets the Process time.
+    /// Gets or sets the Source.
     /// </summary>
-    [JsonPropertyName("process_time")]
-    public string? ProcessTime { get; set; }
+    [JsonPropertyName("source")]
+    public required string Source { get; set; }
 
     /// <summary>
     /// Gets or sets the Validation status.
@@ -54,16 +78,16 @@ public class JobResultResponse
     public string? ValidationStatus { get; set; }
 
     /// <summary>
-    /// Gets or sets the Filename.
-    /// </summary>
-    [JsonPropertyName("filename")]
-    public string? Filename { get; set; }
-
-    /// <summary>
     /// Gets or sets the Client data.
     /// </summary>
     [JsonPropertyName("client_data")]
     public object? ClientData { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Result.
+    /// </summary>
+    [JsonPropertyName("result")]
+    public Result? Result { get; set; }
 
     /// <summary>
     /// Gets or sets the Validation.
@@ -72,8 +96,8 @@ public class JobResultResponse
     public object? Validation { get; set; }
 
     /// <summary>
-    /// Gets or sets the Result.
+    /// Gets or sets the Metadata.
     /// </summary>
-    [JsonPropertyName("result")]
-    public Result? Result { get; set; }
+    [JsonPropertyName("metadata")]
+    public object? Metadata { get; set; }
 }

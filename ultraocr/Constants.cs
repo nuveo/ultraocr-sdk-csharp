@@ -108,4 +108,19 @@ public static class Constants
     /// Base64 attribute.
     /// </summary>
     public const string BASE64_ATTRIBUTE = "base64";
+
+    /// <summary>
+    /// Return attribute.
+    /// </summary>
+    public const string RETURN_ATTRIBUTE = "return";
+
+    /// <summary>
+    /// Return request.
+    /// </summary>
+    public const string RETURN_REQUEST = "request";
+
+    /// <summary>
+    /// Return storage.
+    /// </summary>
+    public const string RETURN_STORAGE = "storage";
 }

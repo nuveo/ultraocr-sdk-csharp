@@ -156,6 +156,13 @@ With the job or batch id, you can get the job result or batch status with:
 var response = await client.GetBatchStatus("BATCH_ID"); // Batches
 var jobResponse = await client.GetJobResult("JOB_ID", "JOB_ID"); // Simple jobs
 var jobResponse2 = await client.GetJobResult("BATCH_ID", "JOB_ID"); // Jobs belonging to batches
+
+var batchResult = await client.GetBatchResult("BATCH_ID"); // Get batch jobs result as array
+var storage = await client.GetBatchResultStorage("BATCH_ID", parameters); // Get batch jobs result in a file
+
+// More details about job and batch
+var batchInfo = await client.GetBatchInfo("BATCH_ID"); // Batches info (without jobs info)
+var jobInfo = await client.GetJobInfo("JOB_ID"); // Jobs info (single jobs only)
 ```
 
 Alternatively, you can use a utily `WaitForJobDone` or `WaitForBatchDone`:
