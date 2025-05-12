@@ -33,7 +33,7 @@ public class JobInfoResponse
     /// Gets or sets the Validation id.
     /// </summary>
     [JsonPropertyName("validation_id")]
-    public required string? ValidationId { get; set; }
+    public string? ValidationId { get; set; }
 
     /// <summary>
     /// Gets or sets the Created At.
