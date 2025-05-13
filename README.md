@@ -11,7 +11,7 @@ For more details about the system, types of documents, routes and params, access
 First of all, you must install this package with nuget:
 
 ```
-dotnet add package Ultraocr --version 1.0.0
+dotnet add package Ultraocr --version 1.1.0
 ```
 
 Then you must import the UltraOCR SDK in your code with:
