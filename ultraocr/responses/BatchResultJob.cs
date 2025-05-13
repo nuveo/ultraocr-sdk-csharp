@@ -1,4 +1,4 @@
-// <copyright file="JobResultResponse.cs" company="Nuveo">
+// <copyright file="BatchResultJob.cs" company="Nuveo">
 // Copyright (c) Nuveo. All rights reserved.
 // </copyright>
 
@@ -9,7 +9,7 @@ using System.Text.Json.Serialization;
 /// <summary>
 /// The Job result response.
 /// </summary>
-public class JobResultResponse
+public class BatchResultJob
 {
     /// <summary>
     /// Gets or sets the Job ksuid.
@@ -40,12 +40,6 @@ public class JobResultResponse
     /// </summary>
     [JsonPropertyName("error")]
     public string? Error { get; set; }
-
-    /// <summary>
-    /// Gets or sets the Process time.
-    /// </summary>
-    [JsonPropertyName("process_time")]
-    public string? ProcessTime { get; set; }
 
     /// <summary>
     /// Gets or sets the Validation status.

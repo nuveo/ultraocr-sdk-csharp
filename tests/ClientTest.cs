@@ -1056,4 +1056,229 @@ public class ClientTest
         });
         Assert.AreEqual("123", res.JobKsuid);
     }
+
+    [TestMethod]
+    public async Task TestGetBatchInfo()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"batch_id\":\"123\",\"created_at\":\"1000\",\"service\":\"cnh\",\"status\":\"waiting\",\"client_id\":\"123\",\"company_id\":\"123\",\"validation_id\":\"123\", \"source\":\"api\"}"),
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        var res = await client.GetBatchInfo("123");
+        Assert.AreEqual("123", res.BatchId);
+        Assert.AreEqual("cnh", res.Service);
+        Assert.AreEqual("waiting", res.Status);
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchInfoFail()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+        {
+            await client.GetBatchInfo("123");
+        });
+    }
+
+    [TestMethod]
+    public async Task TestGetJobInfo()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"job_id\":\"123\",\"created_at\":\"1000\",\"service\":\"cnh\",\"status\":\"done\",\"result\":{\"Document\":{},\"Quantity\":1,\"Time\":\"1\"},\"client_id\":\"123\",\"company_id\":\"123\",\"validation_id\":\"123\", \"source\":\"api\"}"),
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        var res = await client.GetJobInfo("123");
+        Assert.AreEqual("123", res.JobId);
+        Assert.AreEqual("cnh", res.Service);
+        Assert.AreEqual("done", res.Status);
+    }
+
+    [TestMethod]
+    public async Task TestGetJobInfoFail()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+        {
+            await client.GetJobInfo("123");
+        });
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchResultStorage()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("{\"exp\":\"60000\",\"url\":\"123\"}"),
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        var res = await client.GetBatchResultStorage("123", []);
+        Assert.AreEqual("60000", res.Exp);
+        Assert.AreEqual("123", res.Url);
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchResultStorageFail()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+        {
+            await client.GetBatchResultStorage("123", []);
+        });
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchResult()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("[]"),
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        var res = await client.GetBatchResult("123");
+        Assert.AreEqual(0, res.Count);
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchResultWithItem()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.OK,
+                    Content = new StringContent("[{\"job_ksuid\":\"123\",\"created_at\":\"1000\",\"service\":\"cnh\",\"status\":\"done\",\"result\":{\"Document\":{},\"Quantity\":1,\"Time\":\"1\"}}]"),
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        var res = await client.GetBatchResult("123");
+        Assert.AreEqual(1, res.Count);
+    }
+
+    [TestMethod]
+    public async Task TestGetBatchResultFail()
+    {
+        var httpMock = new Mock<HttpMessageHandler>(MockBehavior.Strict);
+
+        httpMock.Protected()
+            .Setup<Task<HttpResponseMessage>>("SendAsync", ItExpr.IsAny<HttpRequestMessage>(), ItExpr.IsAny<CancellationToken>())
+            .Returns(async (HttpRequestMessage request, CancellationToken token) =>
+            {
+                HttpResponseMessage response = new()
+                {
+                    StatusCode = HttpStatusCode.BadRequest,
+                };
+
+                return response;
+            })
+            .Verifiable();
+        var httpClient = new HttpClient(httpMock.Object);
+        var client = new Client(httpClient);
+        await Assert.ThrowsExceptionAsync<HttpRequestException>(async () =>
+        {
+            await client.GetBatchResult("123");
+        });
+    }
 }
